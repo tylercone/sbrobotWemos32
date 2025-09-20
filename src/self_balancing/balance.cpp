@@ -74,6 +74,25 @@ void balanceRobot(float targetAngle, float deadBand)
     setMotorSpeeds(leftSpeed, rightSpeed);
 }
 
+void setPrincipal(float gain) {
+    balancePID.kp = gain
+}
+
+void setIntegral(float gain) {
+    balancePID.ki = gain
+}
+
+void setDerivitive(float gain) {
+    balancePID.kd = gain
+}
+
+void setBaseSpeed(float gain) {
+    if (gain < 0) {
+        gain = 0;
+    }
+    balancePID.baseSpeed = gain
+}
+
 void adjustPIDGains(char qawsedrf)
 {
     Serial.println("PID gains: Kp=" + String(balancePID.kp, 3) + ", Ki=" + String(balancePID.ki, 3) + ", Kd=" + String(balancePID.kd, 3) + ", BaseSpeed=" + String(balancePID.baseSpeed));

@@ -4,6 +4,7 @@
 #include "gyro/gyro.h"
 #include "display/oled.h"
 #include "self_balancing/balance.h"
+#include "serial_iface/tlv.h"
 
 OLED_Display oled;
 
@@ -11,6 +12,9 @@ float targetAngle = 87.0;
 
 // Deadband for error to reduce noise
 float deadBand = 2.0; // degrees
+
+// Global TLV parser instance
+TLVParser tlvParser;
 
 void setup()
 {
@@ -45,6 +49,8 @@ void setup()
 
 void loop()
 {
+  static uint32_t last_angle_print_time = 0;
+  static uint32_t last_pid_print_time = 0;
   // handleWebServer();
   // Main code for the robot's balancing loop
   // GyroData gyro = readGyro(gyroOffsets);
@@ -54,42 +60,67 @@ void loop()
   // float angle = calculateAngle(accel, gyro);
   // Serial.printf("Angle: %.2f\n", angle);
   // Non-blocking serial input - process each character immediately
-  while (Serial.available())
-  {
-    char key = Serial.read();
-    if (key == 'c')
-    {
-      stopMovement();
-      delay(1000); // Small delay to ensure stop command is processed
-      calibrateAll();
-      targetAngle = 87.0;
-      Serial.println("Recalibrated gyro and accelerometer.");
+
+  if(millis() - last_angle_print_time > 100) {
+    last_angle_print_time = millis();
+    float angle = calculateAngle();
+    tlvParser.sendFloatTLV(TLV_TYPE_CURRENT_ANGLE, angle);
+  }
+  if(millis() - last_pid_print_time > 2000) {
+    last_pid_print_time = millis();
+    tlvParser.sendFloatTLV(TLV_TYPE_GET_TARGET_ANGLE, targetAngle);
+    tlvParser.sendFloatTLV(TLV_TYPE_GET_PRINCIPAL, balancePID.kp);
+    tlvParser.sendFloatTLV(TLV_TYPE_GET_INTEGRAL, balancePID.ki);
+    tlvParser.sendFloatTLV(TLV_TYPE_GET_DERIVITIVE, balancePID.kd);
+    tlvParser.sendFloatTLV(TLV_TYPE_GET_BASESPEED, balancePID.baseSpeed);
+    tlvParser.sendFloatTLV(TLV_TYPE_GET_DEADBAND, deadBand);
+  }
+
+  // Check for incoming TLV data
+  if (tlvParser.readTLVFromSerial()) {
+    // Example: Process specific TLV types
+    float* angle_value;
+    if (tlvParser.getTLVAsFloat(TLV_TYPE_SET_ANGLE, angle_value)) {
+      targetAngle = *angle_value;
     }
-    else if (key == 'v')
-    {
-      targetAngle += 0.1; // Increase target angle by 0.1 degree
-      Serial.println("Target angle increased to " + String(targetAngle) + " degrees.");
+
+    float* p_value;
+    if (tlvParser.getTLVAsFloat(TLV_TYPE_SET_PRINCIPAL, p_value)) {
+      setPrincipal(*p_value);
     }
-    else if (key == 'b')
-    {
-      targetAngle -= 0.1; // Decrease target angle by 0.1 degree
-      Serial.println("Target angle decreased to " + String(targetAngle) + " degrees.");
+
+    float* i_value;
+    if (tlvParser.getTLVAsFloat(TLV_TYPE_SET_INTEGRAL, i_value)) {
+      setPrincipal(*i_value);
     }
-    else if (key == 't')
-    {
-      deadBand += 1; // Increase deadband by 1 degree
-      Serial.println("Deadband increased to " + String(deadBand) + " degrees.");
+
+    float* d_value;
+    if (tlvParser.getTLVAsFloat(TLV_TYPE_SET_DERIVITIVE, d_value)) {
+      setPrincipal(*d_value);
     }
-    else if (key == 'g')
-    {
-      deadBand -= 1; // Decrease deadband by 1 degree
-      if (deadBand < 0) deadBand = 0; // Prevent negative deadband
-      Serial.println("Deadband decreased to " + String(deadBand) + " degrees.");
+
+    float* basespeed_value;
+    if (tlvParser.getTLVAsFloat(TLV_TYPE_SET_BASESPEED, basespeed_value)) {
+      setBaseSpeed(*basespeed_value);
     }
-    else
-    {
-      adjustPIDGains(key);
+
+    float* deadband_value;
+    if (tlvParser.getTLVAsFloat(TLV_TYPE_SET_DEADBAND, deadband_value)) {
+      deadBand = *deadband_value
     }
+
+    uint32_t* stop_value;
+    if (tlvParser.getTLVAsInt(TLV_TYPE_STOP, stop_value)) {
+      if (*stop_value > 0) {
+        stopMovement();
+	delay(1000); // Small delay to ensure stop command is processed
+        calibrateAll();
+        targetAngle = 87.0;
+      }
+    }
+
+
+    tlvParser.reset();
   }
 
   // Balance the robot
