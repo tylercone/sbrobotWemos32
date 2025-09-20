@@ -4,7 +4,7 @@
 #include "gyro/gyro.h"
 #include "display/oled.h"
 #include "self_balancing/balance.h"
-#include "serial_iface/tlv.h"
+#include "serial_iface/tlv.hpp"
 
 OLED_Display oled;
 
@@ -13,7 +13,6 @@ float targetAngle = 87.0;
 // Deadband for error to reduce noise
 float deadBand = 2.0; // degrees
 
-// Global TLV parser instance
 TLVParser tlvParser;
 
 void setup()
@@ -69,7 +68,7 @@ void loop()
   if(millis() - last_pid_print_time > 2000) {
     last_pid_print_time = millis();
     tlvParser.sendFloatTLV(TLV_TYPE_GET_TARGET_ANGLE, targetAngle);
-    tlvParser.sendFloatTLV(TLV_TYPE_GET_PRINCIPAL, balancePID.kp);
+    tlvParser.sendFloatTLV(TLV_TYPE_GET_PRINCIPLE, balancePID.kp);
     tlvParser.sendFloatTLV(TLV_TYPE_GET_INTEGRAL, balancePID.ki);
     tlvParser.sendFloatTLV(TLV_TYPE_GET_DERIVITIVE, balancePID.kd);
     tlvParser.sendFloatTLV(TLV_TYPE_GET_BASESPEED, balancePID.baseSpeed);
@@ -79,39 +78,39 @@ void loop()
   // Check for incoming TLV data
   if (tlvParser.readTLVFromSerial()) {
     // Example: Process specific TLV types
-    float* angle_value;
-    if (tlvParser.getTLVAsFloat(TLV_TYPE_SET_ANGLE, angle_value)) {
-      targetAngle = *angle_value;
+    float angle_value;
+    if (tlvParser.getTLVAsFloat(TLV_TYPE_SET_TARGET_ANGLE, angle_value)) {
+      targetAngle = angle_value;
     }
 
-    float* p_value;
-    if (tlvParser.getTLVAsFloat(TLV_TYPE_SET_PRINCIPAL, p_value)) {
-      setPrincipal(*p_value);
+    float p_value;
+    if (tlvParser.getTLVAsFloat(TLV_TYPE_SET_PRINCIPLE, p_value)) {
+      setPrincipal(p_value);
     }
 
-    float* i_value;
+    float i_value;
     if (tlvParser.getTLVAsFloat(TLV_TYPE_SET_INTEGRAL, i_value)) {
-      setPrincipal(*i_value);
+      setPrincipal(i_value);
     }
 
-    float* d_value;
+    float d_value;
     if (tlvParser.getTLVAsFloat(TLV_TYPE_SET_DERIVITIVE, d_value)) {
-      setPrincipal(*d_value);
+      setPrincipal(d_value);
     }
 
-    float* basespeed_value;
+    float basespeed_value;
     if (tlvParser.getTLVAsFloat(TLV_TYPE_SET_BASESPEED, basespeed_value)) {
-      setBaseSpeed(*basespeed_value);
+      setBaseSpeed(basespeed_value);
     }
 
-    float* deadband_value;
+    float deadband_value;
     if (tlvParser.getTLVAsFloat(TLV_TYPE_SET_DEADBAND, deadband_value)) {
-      deadBand = *deadband_value
+      deadBand = deadband_value;
     }
 
-    uint32_t* stop_value;
+    uint32_t stop_value;
     if (tlvParser.getTLVAsInt(TLV_TYPE_STOP, stop_value)) {
-      if (*stop_value > 0) {
+      if (stop_value > 0) {
         stopMovement();
 	delay(1000); // Small delay to ensure stop command is processed
         calibrateAll();

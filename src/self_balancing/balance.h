@@ -27,6 +27,7 @@ void balanceRobot(float angle, float deadBand);
 void setPrincipal(float gain);
 void setIntegral(float gain);
 void setDerivitive(float gain);
+void setBaseSpeed(float gain);
 void adjustPIDGains(char input);
 
 // Global PID controller access

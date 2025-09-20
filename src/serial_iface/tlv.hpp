@@ -1,5 +1,30 @@
 #include <Arduino.h>
 
+// TLV Structure Definition
+typedef struct {
+    uint8_t type;
+    uint16_t length;
+    uint8_t* value;
+} tlv_t;
+
+// Example TLV types (you can define your own)
+enum TLVTypes {
+    TLV_TYPE_SET_TARGET_ANGLE = 0x01,
+    TLV_TYPE_SET_PRINCIPLE    = 0x02,
+    TLV_TYPE_SET_INTEGRAL     = 0x03,
+    TLV_TYPE_SET_DERIVITIVE   = 0x04,
+    TLV_TYPE_SET_DEADBAND     = 0x05,
+    TLV_TYPE_SET_BASESPEED    = 0x06,
+    TLV_TYPE_GET_TARGET_ANGLE = 0x07,
+    TLV_TYPE_GET_PRINCIPLE    = 0x08,
+    TLV_TYPE_GET_INTEGRAL     = 0x09,
+    TLV_TYPE_GET_DERIVITIVE   = 0x0A,
+    TLV_TYPE_GET_DEADBAND     = 0x0B,
+    TLV_TYPE_GET_BASESPEED    = 0x0C,
+    TLV_TYPE_CURRENT_ANGLE    = 0x0D,
+    TLV_TYPE_STOP             = 0x0E,
+};
+
 // TLV Parser Class
 class TLVParser {
 private:
@@ -10,7 +35,7 @@ private:
     size_t buffer_pos;
     tlv_t tlv_entries[MAX_TLV_COUNT];
     size_t tlv_count;
-
+    
     // Utility function to convert float to bytes
     void floatToBytes(float value, uint8_t* bytes, bool big_endian = true) {
         union {
@@ -191,7 +216,7 @@ public:
         }
         return true;
     }
-        
+    
     // Get TLV value as float (IEEE 754 single precision)
     bool getTLVAsFloat(uint8_t type, float& result, bool big_endian = true) const {
         const tlv_t* tlv = findTLVByType(type);
@@ -276,7 +301,7 @@ public:
         tlv_count = 0;
         memset(buffer, 0, MAX_BUFFER_SIZE);
     }
-
+    
     // Send a TLV to Serial
     void sendTLV(uint8_t type, uint16_t length, const uint8_t* value) {
         // Send Type (1 byte)
@@ -344,5 +369,13 @@ public:
     void sendBinaryTLV(uint8_t type, const uint8_t* data, uint16_t length) {
         sendTLV(type, length, data);
     }
+    
+    // Print TLV in hex format (for debugging)
+    void printTLVHex(uint8_t type, uint16_t length, const uint8_t* value) {
+        Serial.printf("TLV Hex: %02X %02X %02X ", type, (length >> 8) & 0xFF, length & 0xFF);
+        for (uint16_t i = 0; i < length; i++) {
+            Serial.printf("%02X ", value[i]);
+        }
+        Serial.println();
+    }
 };
-

@@ -75,22 +75,22 @@ void balanceRobot(float targetAngle, float deadBand)
 }
 
 void setPrincipal(float gain) {
-    balancePID.kp = gain
+    balancePID.kp = gain;
 }
 
 void setIntegral(float gain) {
-    balancePID.ki = gain
+    balancePID.ki = gain;
 }
 
 void setDerivitive(float gain) {
-    balancePID.kd = gain
+    balancePID.kd = gain;
 }
 
 void setBaseSpeed(float gain) {
     if (gain < 0) {
         gain = 0;
     }
-    balancePID.baseSpeed = gain
+    balancePID.baseSpeed = gain;
 }
 
 void adjustPIDGains(char qawsedrf)
